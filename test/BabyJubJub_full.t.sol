@@ -4,28 +4,28 @@ pragma solidity 0.8.14;
 import "forge-std/Test.sol";
 import "../src/BabyJubJub_full.sol";
 
-contract BabyJubJubTest is Test {
+contract BabyJubJubFull_Test is Test {
 
     using BJJLib for BJJLib.AffinePoint;
 
-    function xtestCurveGeneratorOnCurve() public {
+    function testFullCurveGeneratorOnCurve() public {
         BJJLib.AffinePoint memory g = BJJLib.curveGenerator();
         assertTrue(g.isOnCurve());
     }
 
-    function xtestSubgroupGeneratorOnCurve() public {
+    function testFullSubgroupGeneratorOnCurve() public {
         BJJLib.AffinePoint memory sg = BJJLib.subgroupGenerator();
         assertTrue(sg.isOnCurve());
     }
 
-    function xtestIdentityAddition() public {
+    function testFullIdentityAddition() public {
         BJJLib.AffinePoint memory sg = BJJLib.subgroupGenerator();
         BJJLib.AffinePoint memory sg_id = BJJLib.id().add(sg);
         assertEq(sg.x, sg_id.x);
         assertEq(sg.y, sg_id.y);
     }
 
-    function xtestSubgroupGeneratorDoubling() public {
+    function testFullSubgroupGeneratorDoubling() public {
         BJJLib.AffinePoint memory sg = BJJLib.subgroupGenerator();
         assertEq(sg.add(sg).x, sg.double().x);
         assertEq(sg.add(sg).y, sg.double().y);
@@ -34,7 +34,7 @@ contract BabyJubJubTest is Test {
         assertEq(sg.add(sg).y, sg.mul(2).y);
     }
 
-    function xtestSubgroupGeneratorTripling() public {
+    function testFullSubgroupGeneratorTripling() public {
         BJJLib.AffinePoint memory sg = BJJLib.subgroupGenerator();
 
         BJJLib.AffinePoint memory tripled = sg.add(sg.add(sg));
@@ -46,26 +46,26 @@ contract BabyJubJubTest is Test {
         assertEq(tripled.y, sg.mul(3).y);
     }
 
-    function xtestIdentityDoublingIsIdentity() public {
+    function testFullIdentityDoublingIsIdentity() public {
         BJJLib.AffinePoint memory id = BJJLib.id();
         BJJLib.AffinePoint memory idDoubled = id.double();
         assertEq(id.x, idDoubled.x);
         assertEq(id.y, idDoubled.y);
     }
 
-    function xtestSubgroupElementTimesOrderIsIdentity() public {
+    function testFullSubgroupElementTimesOrderIsIdentity() public {
         BJJLib.AffinePoint memory sg = BJJLib.subgroupGenerator();
         BJJLib.AffinePoint memory multiplied = sg.mul(BJJLib.l);
         assertEq(BJJLib.id().x, multiplied.x);
         assertEq(BJJLib.id().y, multiplied.y);
     }
 
-    function xtestCurveGeneratorShouldIsNotInSubgroup() public {
+    function testFullCurveGeneratorShouldIsNotInSubgroup() public {
         BJJLib.AffinePoint memory g = BJJLib.curveGenerator();
         assertFalse(g.isValidSubGroupPointNotId());
     }
 
-    function testGasOpti() public {
+    function testFullGasOpti() public {
         BJJLib.AffinePoint memory sg = BJJLib.subgroupGenerator();
 
         sg.mul(BJJLib.l);
