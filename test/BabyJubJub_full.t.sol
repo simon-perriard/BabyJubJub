@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
+// Author: Simon Perriard
+// Contact: simon.perriard@chainsecurity.com
+// 2023
+
 pragma solidity 0.8.14;
 
 import "forge-std/Test.sol";
