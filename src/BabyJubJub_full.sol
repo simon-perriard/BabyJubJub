@@ -113,6 +113,22 @@ library BJJLib {
         aP.y = _mulModr(p.y, inv_Z);
     }
 
+    function _doubleProjectiveZ_1(ProjectivePoint memory p) internal pure returns(ProjectivePoint memory p2) {
+        // This algorithm expects Z==1
+        require(p.z == 1, "p.z must be 1"); // Not necessary, the library ensures this by construction
+
+        uint256 x1_sq = _mulModr(p.x, p.x);
+        uint256 y1_sq = _mulModr(p.y, p.y);
+        uint256 B = addmod(addmod(x1_sq, y1_sq, r), _mulModr(_mulModr(2, p.x), p.y), r); // (X1+Y1)^2 = X1^2 + 2*X1*Y1 + Y1^2
+        uint256 C = x1_sq;
+        uint256 D = y1_sq;
+        uint256 E = _mulModr(a, C);
+        uint256 F = addmod(E, D, r);
+        p2.x = _mulModr(_subModr(B, addmod(C, D, r)), _subModr(F, 2));
+        p2.y = _mulModr(F, _subModr(E, D));
+        p2.z = _subModr(_mulModr(F, F), _mulModr(2, F));
+    }
+
     function _doubleProjectiveGeneric(ProjectivePoint memory p) internal pure returns(ProjectivePoint memory p2) {
         uint256 x1_sq = _mulModr(p.x, p.x);
         uint256 y1_sq = _mulModr(p.y, p.y);
@@ -130,8 +146,43 @@ library BJJLib {
 
     function double(AffinePoint memory aP) public view returns(AffinePoint memory aP2) {
         ProjectivePoint memory p = toProjective(aP);
-        aP2 = toAffine(_doubleProjectiveGeneric(p));
+        aP2 = toAffine(_doubleProjectiveZ_1(p));
         assert(isOnCurve(aP2));
+    }
+
+    function _addProjectiveZ12_1(ProjectivePoint memory p1, ProjectivePoint memory p2) public pure returns(ProjectivePoint memory p3) {
+
+        // This algorithm expects Z1==1 and Z2==1
+        require(p1.z == 1 && p2.z == 1, "p1/p2.z must be 1"); // Not necessary, the library ensures this by construction
+
+        uint256 C = _mulModr(p1.x, p2.x);
+        uint256 D = _mulModr(p1.y, p2.y);
+        uint256 E = _mulModr(d, _mulModr(C, D));
+
+        p3.x = _mulModr(_subModr(1, E), _subModr(_mulModr(p1.x+p1.y, p2.x+p2.y), addmod(C, D, r)));
+        p3.y = _mulModr(1+E, _subModr(D, _mulModr(a, C)));
+        p3.z = _subModr(1, _mulModr(E, E));        
+    }
+
+    function _addProjectiveZ2_1(ProjectivePoint memory p1, ProjectivePoint memory p2) public pure returns(ProjectivePoint memory p3) {
+
+        // This algorithm expects Z2==1
+        require(p2.z == 1, "p2.z must be 1"); // Not necessary, the library ensures this by construction
+
+        uint256 B = _mulModr(p1.z, p1.z);
+        uint256 C = _mulModr(p1.x, p2.x);
+        uint256 D = _mulModr(p1.y, p2.y);
+        uint256 E = _mulModr(d, _mulModr(C, D));
+        uint256 F = _subModr(B, E);
+        uint256 G = addmod(B, E, r);
+        
+        p3.x = _addProjectiveZ12_1_P3X_helper(p1, p2, C, D, F);
+        p3.y = _mulModr(p1.z, _mulModr(G, _subModr(D, _mulModr(a, C))));
+        p3.z = _mulModr(F, G);   
+    }
+
+    function _addProjectiveZ12_1_P3X_helper(ProjectivePoint memory p1, ProjectivePoint memory p2, uint256 C, uint256 D, uint256 F) internal pure returns(uint256 x) {
+        x = _mulModr(p1.z, _mulModr(F, _subModr(_mulModr(addmod(p1.x, p1.y, r), addmod(p2.x, p2.y, r)), addmod(C, D, r))));
     }
 
     function _addProjectiveGeneric(ProjectivePoint memory p1, ProjectivePoint memory p2) public pure returns(ProjectivePoint memory p3) {
@@ -155,7 +206,7 @@ library BJJLib {
     function add(AffinePoint memory aP1, AffinePoint memory aP2) public view returns(AffinePoint memory aP3) {
         ProjectivePoint memory p1 = toProjective(aP1);
         ProjectivePoint memory p2 = toProjective(aP2);
-        aP3 = toAffine(_addProjectiveGeneric(p1, p2));
+        aP3 = toAffine(_addProjectiveZ12_1(p1, p2));
         assert(isOnCurve(aP3));
     }
 
@@ -166,10 +217,24 @@ library BJJLib {
 
         while (scalar != 0) {
             if ((scalar & 0x1) != 0) {
-                p2 = _addProjectiveGeneric(p2, p);
+
+                // Select the most optimized formula
+                if (p.z == 1 && p2.z == 1) {
+                    p2 = _addProjectiveZ12_1(p2,p);
+                } else if (p.z == 1 || p2.z == 1) {
+                    p2 = p.z==1 ? _addProjectiveZ2_1(p2,p) : _addProjectiveZ2_1(p,p2);
+                } else {
+                    require(p.z != 1 && p2.z != 1);
+                    p2 = _addProjectiveGeneric(p2, p);
+                }
             }
 
-            p = _doubleProjectiveGeneric(p);
+            // Select the most optimized formula
+            if (p.z != 1) {
+                p = _doubleProjectiveGeneric(p);
+            } else {
+                p = _doubleProjectiveZ_1(p);
+            }
 
             scalar /= 2;
         }
