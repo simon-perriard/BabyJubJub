@@ -3,7 +3,7 @@
 // Contact: simon.perriard@chainsecurity.com
 // 2023
 
-// Formulas from https://www.hyperelliptic.org/EFD/g1p/auto-twisted-projective.html
+// Formulas from https://www.hyperelliptic.org/EFD/g1p/auto-twisted-extended.html
 
 pragma solidity ^0.8.0;
 
